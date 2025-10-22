@@ -5,13 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Strong Point Progres</title>
 
-  <!-- Meta Tags untuk Open Graph -->
-  <meta property="og:title" content="Strong Point 2025">
-  <meta property="og:description" content="Lihat progres kegiatan Strong Point Infraswil 2025 secara interkatif (best view via smartphone/tablet).">
-  <meta property="og:image" content="https://binfraswilzulsel.my.id/sp2.jpg" />
-  <meta property="og:url" content="binfraswilzulsel.my.id/" />
-  <meta property="og:type" content="website" />
-    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         /* Gaya Dasar */
@@ -538,59 +531,75 @@
         
     // --- 1. CONFIGURASI DATA API GOOGLE SHEET ---
     
-    // VARIABEL INI AKAN MENAMPUNG DATA YANG DIAMBIL DARI GOOGLE SHEET
-    let progressData = []; 
+// --- 1. CONFIGURASI DATA API GOOGLE SHEET ---
 
-    // URL WEB APP ANDA DARI GOOGLE APPS SCRIPT (SUDAH DIPERBARUI)
-    const DATA_API_URL = 'https://script.google.com/macros/s/AKfycbwYILBwpqUpxF8e-Ti6zqu5JRiZNa9IRVoNci1Q-5Z5DYvTaocgJ1hCblO59mG7a4ra/exec'; 
+// VARIABEL INI AKAN MENAMPUNG DATA YANG DIAMBIL DARI GOOGLE SHEET
+let progressData = []; 
+
+// URL WEB APP ANDA DARI GOOGLE APPS SCRIPT
+const DATA_API_URL = 'https://script.google.com/macros/s/AKfycbwlqKl41JoCiS0GmZA5g7ec31Wq9nrW87o2akpGbTLZ65tvVxsuQfM2AbfqboiuRe5L/exec'; 
 
 
-    // --- 2. LOGIKA PEMUATAN DATA UTAMA ---
-    
-    // Fungsi untuk memuat semua kartu OPD saat data berhasil diambil
-    function loadOPDCards() {
-        const opdContainer = document.getElementById('opd-container');
-        // Bersihkan container sebelum merender data baru
-        opdContainer.innerHTML = ''; 
+// Fungsi untuk memuat semua kartu OPD saat data berhasil diambil
+function loadOPDCards() {
+    const opdContainer = document.getElementById('opd-container');
+    opdContainer.innerHTML = ''; 
 
-        if (progressData.length > 0) {
-            progressData.forEach(opd => {
-                // Pastikan fungsi createOPDCard ada
-                opdContainer.appendChild(createOPDCard(opd));
-            });
-        } else {
-            opdContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 30px;">Gagal memuat data atau data kosong.</p>';
-        }
-
-        // Mulai dengan menyembunyikan kontainer hasil filter
-        document.getElementById('filtered-results-container').style.display = 'none';
+    if (progressData.length > 0) {
+        progressData.forEach(opd => {
+            // Pastikan fungsi createOPDCard ada
+            opdContainer.appendChild(createOPDCard(opd));
+        });
+    } else {
+        opdContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 30px;">Gagal memuat data atau data kosong.</p>';
     }
 
+    document.getElementById('filtered-results-container').style.display = 'none';
+}
 
-    // FUNGSI UTAMA PENGAMBILAN DATA (Fetch) - Akan berjalan saat halaman dimuat
-    document.addEventListener('DOMContentLoaded', () => {
-        
-        // Mengambil data dari Google Sheets API
-        fetch(DATA_API_URL) 
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Gagal memuat data dari API. Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
+// FUNGSI BARU UNTUK MENGAMBIL DATA
+function fetchAndLoadData() {
+    // Mengambil data dari Google Sheets API
+    fetch(DATA_API_URL) 
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Gagal memuat data dari API. Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Cek apakah data benar-benar berubah sebelum merender ulang seluruh kartu
+            // (Opsional, tapi bagus untuk performa)
+            if (JSON.stringify(progressData) !== JSON.stringify(data)) {
                 progressData = data; // Simpan data API ke variabel global
                 loadOPDCards();      // Panggil fungsi untuk merender kartu
-            })
-            .catch(error => {
-                console.error('Error saat mengambil data dari Google Sheet:', error);
+                console.log('Data diperbarui dari Google Sheet.');
+            } else {
+                console.log('Data tidak berubah, tidak ada rendering ulang.');
+            }
+        })
+        .catch(error => {
+            console.error('Error saat mengambil data dari Google Sheet:', error);
+            // Hanya tampilkan error jika container benar-benar kosong
+            if (progressData.length === 0) {
                 document.getElementById('opd-container').innerHTML = 
                     `<p style="text-align: center; color: red; padding: 30px;">
                         Error saat memuat data: ${error.message}.
                     </p>`;
-            });
-    });
+            }
+        });
+}
 
+// FUNGSI UTAMA (Menjalankan Polling)
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // 1. Pemuatan Awal data
+    fetchAndLoadData();
+    
+    // 2. Polling: Mengambil data ulang setiap 10 detik (10000 milidetik)
+    // Ubah angka 10000 jika Anda ingin interval yang lebih cepat atau lambat
+    setInterval(fetchAndLoadData, 10000); 
+});
 
     // --- 3. FUNGSI HELPER (YANG TIDAK DIUBAH) ---
     
@@ -945,4 +954,3 @@
     </footer>
 </body>
 </html>
-

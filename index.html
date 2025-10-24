@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Strong Point Progres</title>
 
+  <!-- Meta Tags untuk Open Graph -->
+  <meta property="og:title" content="Strong Point 2025">
+  <meta property="og:description" content="Lihat progres kegiatan Strong Point Infraswil 2025 secara interkatif (best view via smartphone/tablet).">
+  <meta property="og:image" content="https://binfraswilzulsel.my.id/sp2.jpg" />
+  <meta property="og:url" content="binfraswilzulsel.my.id/" />
+  <meta property="og:type" content="website" />
+
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         /* Gaya Dasar */
@@ -15,8 +22,6 @@
         }
 
         header {
-            position: sticky;
-            top: 0;
             background-color: #0740aa;
             color: white;
             padding: 15px 20px;
@@ -57,10 +62,13 @@
         
         /* Bagian Filter */
         .filter-section {
-            padding: 0 15px; 
-            margin-bottom: 1px;
-            position: relative;
-        }
+padding: 10px 15px; /* Tambahkan padding-top dan bottom */
+    position: sticky; /* Membuat tombol filter sticky */
+    top: 0; /* Menempel di bagian paling atas viewport */
+    z-index: 1001; /* PENTING: Harus lebih tinggi dari header (jika header sticky) dan konten lainnya */
+    background-color: #0740aa; /* Menyesuaikan dengan warna header */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Tambahkan shadow agar terlihat terangkat */
+}
 
         .filter-toggle-btn {
             background-color: #f7f9fc00;
@@ -184,6 +192,12 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             transition: background-color 0.3s ease;
             text-align: center;
+            /* Logic Sticky Baru */
+    position: sticky; 
+    /* Hitung tinggi filter-section. Karena filter-section punya padding atas/bawah, 
+       sekitar 45px adalah perkiraan tinggi tombol + padding. */
+    top: 45px; 
+    z-index: 900;
         }
         
         /* Kelas untuk mengubah warna header filter */
@@ -478,19 +492,26 @@
                 left: 15px; 
             }
 
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: white;
-            font-size: 0.8em;
-            margin-top: 20px;
         }
 
-        
+        footer {
+            text-align: center;
+            color: white;
+            font-size: 11px;
+            width: 93vw;
+            position: relative;
+            margin-bottom: 20px;
+            line-height: 1.2;
+
+        }footer p{
+            margin: 2px 0;
+        }
     </style>
 </head>
-<body>   
+<body>
     <header>
+
+        
         <img src="400-binfraswil.jpg" alt="Logo" class="header-logo">
         <span class="header-title">Progres Strong Point Mitra Bidang Infraswil Tahun 2025</span></header>
 
@@ -516,91 +537,78 @@
     <div class="container" id="opd-container">
     </div>
 
-    <script>
-        
-// --- 1. CONFIGURASI DATA API GOOGLE SHEET ---
-// VARIABEL INI AKAN MENAMPUNG DATA YANG DIAMBIL DARI GOOGLE SHEET
-let progressData = []; 
-
-// URL WEB APP ANDA DARI GOOGLE APPS SCRIPT
-const DATA_API_URL = 'https://script.google.com/macros/s/AKfycbzwMW5eZOnjuFQBOZQ6ksMLnTCeTnefZsJ-tohyoqwXzgQezvZuDIm_ByIqZqr88bGp/exec'; 
-
-
-// Fungsi untuk memuat semua kartu OPD saat data berhasil diambil
-function loadOPDCards() {
-    const opdContainer = document.getElementById('opd-container');
-    opdContainer.innerHTML = ''; 
-
-    if (progressData.length > 0) {
-        progressData.forEach(opd => {
-            // Pastikan fungsi createOPDCard ada
-            opdContainer.appendChild(createOPDCard(opd));
-        });
-    } else {
-        opdContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 30px;">Gagal memuat data atau data kosong.</p>';
+ <script>
+    
+    // --- 1. CONFIGURASI DATA API GOOGLE SHEET ---
+    
+    // VARIABEL INI AKAN MENAMPUNG DATA YANG DIAMBIL DARI GOOGLE SHEET
+    let progressData = []; 
+    
+    // !!! GANTI DENGAN URL APPS SCRIPT ANDA YANG BERHASIL !!!
+    const DATA_API_URL = 'https://script.google.com/macros/s/AKfycbzwMW5eZOnjuFQBOZQ6ksMLnTCeTnefZsJ-tohyoqwXzgQezvZuDIm_ByIqZqr88bGp/exec'; 
+    
+    
+    // Fungsi untuk memuat semua kartu OPD saat data berhasil diambil
+    function loadOPDCards() {
+        const opdContainer = document.getElementById('opd-container');
+        opdContainer.innerHTML = ''; 
+    
+        if (progressData.length > 0) {
+            progressData.forEach(opd => {
+                opdContainer.appendChild(createOPDCard(opd));
+            });
+        } else {
+            opdContainer.innerHTML = `<p style="text-align: center; color: white; padding: 30px; background-color: #0740aa;">
+                Data kosong atau sedang menunggu pembaruan.
+            </p>`;
+        }
+    
+        document.getElementById('filtered-results-container').style.display = 'none';
     }
-
-    document.getElementById('filtered-results-container').style.display = 'none';
-}
-
-// FUNGSI BARU UNTUK MENGAMBIL DATA
-        function fetchAndLoadData() {
-        const loadingOverlay = document.getElementById('loading-overlay');
-        loadingOverlay.style.display = 'flex'; // Tampilkan Loading
-            
-    // Mengambil data dari Google Sheets API
-    fetch(DATA_API_URL) 
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Gagal memuat data dari API. Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-        loadingOverlay.style.display = 'none'; // Sembunyikan Loading
-
-            // Cek apakah data benar-benar berubah sebelum merender ulang seluruh kartu
-            // (Opsional, tapi bagus untuk performa)
-            if (JSON.stringify(progressData) !== JSON.stringify(data)) {
-                progressData = data; // Simpan data API ke variabel global
-                loadOPDCards();      // Panggil fungsi untuk merender kartu
-                console.log('Data diperbarui dari Google Sheet.');
-            } else {
-                console.log('Data tidak berubah, tidak ada rendering ulang.');
-            }
-        })
-        .catch(error => {
-        loadingOverlay.style.display = 'none'; // Sembunyikan Loading bahkan jika error
-        console.error('Error saat mengambil data dari Google Sheet:', error);
-            // Hanya tampilkan error jika container benar-benar kosong
-            if (progressData.length === 0) {
-                document.getElementById('opd-container').innerHTML = 
-                    `<p style="text-align: center; color: red; padding: 30px;">
-                        Error saat memuat data: ${error.message}.
-                    </p>`;
-            }
-        });
-}
-
-// FUNGSI UTAMA (Menjalankan Polling)
-document.addEventListener('DOMContentLoaded', () => {
     
-    // 1. Pemuatan Awal data
-    fetchAndLoadData();
+    // FUNGSI BARU UNTUK MENGAMBIL DATA
+    function fetchAndLoadData() {
+        fetch(DATA_API_URL) 
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (JSON.stringify(progressData) !== JSON.stringify(data)) {
+                    progressData = data; 
+                    loadOPDCards();      
+                    console.log('Data diperbarui dari Google Sheet.');
+                } else {
+                    console.log('Data tidak berubah, tidak ada rendering ulang.');
+                }
+            })
+            .catch(error => {
+                console.error('Error saat mengambil data dari Google Sheet:', error);
+                if (progressData.length === 0) {
+                    document.getElementById('opd-container').innerHTML = 
+                        `<p style="text-align: center; color: red; padding: 30px;">
+                            Error saat memuat data: ${error.message}. (Kemungkinan masalah koneksi atau Apps Script deployment).
+                        </p>`;
+                }
+            });
+    }
     
-    // 2. Polling: Mengambil data ulang setiap 10 detik (10000 milidetik)
-    // Ubah angka 10000 jika Anda ingin interval yang lebih cepat atau lambat
-    setInterval(fetchAndLoadData, 10000); 
-});
-
-    // --- 3. FUNGSI HELPER (YANG TIDAK DIUBAH) ---
+    // FUNGSI UTAMA (Menjalankan Polling)
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        fetchAndLoadData();
+        
+        setInterval(fetchAndLoadData, 10000); 
+    });
     
-    // Helper untuk format mata uang
+    // --- 2. FUNGSI HELPER & LOGIC ---
+    
     function formatRupiah(number) {
         return "Rp " + number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
     
-    // Helper untuk mendapatkan kelas status (warna)
     function getStatusClass(status) {
         switch (status.toLowerCase().trim()) {
             case 'belum terlaksana':
@@ -610,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'berproses':
                 return 'status-yellow';
             case 'selesai':
+            case 'sudah selesai': 
                 return 'status-blue';
             case 'tidak diperlukan':
                 return 'status-purple';
@@ -618,7 +627,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Helper untuk membuat HTML Card Kegiatan yang disaring (Mirip Card Kegiatan Biasa)
     function createFilteredKegiatanCard(kegiatan, opd, index) {
         const realisasiKeuangan = parseFloat(kegiatan.realisasi_keuangan.replace(',', '.'));
         const realisasiFisik = parseFloat(kegiatan.realisasi_fisik.replace(',', '.'));
@@ -628,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="filtered-kegiatan-card" onclick="toggleKegiatanDetail(this)">
                 <div class="kegiatan-card-head"> 
                     <div>
-                        <div class="kegiatan-title">${index + 1}. [${opd.opd}] - ${kegiatan.nama}</div>
+                        <div class="kegiatan-title">${index}. [${opd.opd}] - ${kegiatan.nama}</div>
                         <div class="kegiatan-info">Anggaran: ${formatRupiah(kegiatan.pagu_kegiatan)}</div>
                     </div>
                     <span class="material-icons toggle-btn">expand_more</span> 
@@ -664,16 +672,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
     }
-
-
+    
+    
     // --- FUNGSI FILTER UTAMA ---
-
-    // 1. Fungsi Toggle Dropdown Filter
+    
     function toggleFilterDropdown() {
         document.getElementById('filterDropdown').classList.toggle('show');
     }
-
-    // 2. Fungsi Logika Pemfilteran berdasarkan Status Kegiatan (DIPERBAIKI)
+    
     function filterByStatus(statusFilter, headerClass, clickedButton) {
         const resultsContainer = document.getElementById('filtered-kegiatan-list');
         const mainContainer = document.getElementById('opd-container');
@@ -682,73 +688,103 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let filteredHTML = '';
         let count = 0;
-
-        // 1. Reset status active pada semua tombol filter
+    
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-
-        // 2. Set tombol yang diklik menjadi active
+    
         clickedButton.classList.add('active');
-
-        // 3. Atur warna header hasil filter
         filteredHeader.className = 'filtered-header ' + headerClass; 
         
-        // Tutup dropdown setelah memilih filter
         toggleFilterDropdown(); 
         
-        // Logika Filter: Kumpulkan semua kegiatan yang statusnya cocok
         progressData.forEach(opd => {
             opd.kegiatan.forEach((keg, index) => {
-                if (keg.pelaksanaan.trim() === statusFilter.trim()) {
+                if (keg.pelaksanaan.trim().toLowerCase() === statusFilter.trim().toLowerCase()) {
                     count++;
-                    // Kirim OPDA dan index kegitan untuk tampilan di kartu filter
                     filteredHTML += createFilteredKegiatanCard(keg, opd, count); 
                 }
             });
         });
-
-        // Sembunyikan konten OPD utama dan tampilkan hasil filter
+    
+        closeAllOPDCards();
         mainContainer.classList.add('hide-main-content');
         filteredSection.style.display = 'flex';
         
         document.getElementById('currentFilterStatus').textContent = statusFilter + ` (${count} Kegiatan)`;
-
+    
         if (count > 0) {
             resultsContainer.innerHTML = filteredHTML;
-            // Scroll ke bagian hasil filter
-            filteredSection.scrollIntoView({ behavior: 'smooth' });
+            // Scroll ke posisi atas agar header sticky terlihat
+            window.scrollTo({
+                top: 10, 
+                behavior: 'smooth'
+            });
         } else {
             resultsContainer.innerHTML = `<p style="text-align: center; color: #666; padding: 30px; background-color: white; border-radius: 10px;">Tidak ditemukan kegiatan dengan status "${statusFilter}"</p>`;
         }
     }
     
-    // 3. Fungsi Reset Filter (Menampilkan Kembali Kartu OPD)
+    /**
+     * FUNGSI MODIFIKASI: Reset Filter (Menampilkan Kembali Kartu OPD)
+     * closeAllOPDCards() dikembalikan
+     */
     function resetFilter(clickedButton) {
         const mainContainer = document.getElementById('opd-container');
         const filteredSection = document.getElementById('filtered-results-container');
         const filteredHeader = document.getElementById('filteredHeader');
         
-        // Reset status active pada semua tombol filter
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         
-        // Hapus kelas warna dari header
         filteredHeader.className = 'filtered-header'; 
         document.getElementById('currentFilterStatus').textContent = "Semua OPD";
-
-        // Tampilkan kembali konten OPD utama dan sembunyikan hasil filter
+    
+        // 1. PASTIKAN SEMUA KARTU OPD TERTUTUP! (Perbaikan Bug)
+        closeAllOPDCards(); 
+    
+        // Tampilkan kembali konten OPD utama
         filteredSection.style.display = 'none';
-        mainContainer.classList.remove('hide-main-content');
+        setTimeout(() => {
+            mainContainer.classList.remove('hide-main-content');
+            // Scroll ke posisi atas agar header sticky terlihat
+            window.scrollTo({
+                top: 10, 
+                behavior: 'smooth'
+            });
+        }, 300); 
         
-        // Tutup dropdown
         toggleFilterDropdown();
     }
+
+    /**
+     * FUNGSI PENTING: Menutup Semua Kartu OPD dan Detail Kegiatan
+     */
+    function closeAllOPDCards() {
+        // Tutup semua container OPD utama
+        document.querySelectorAll('.card').forEach(card => {
+            const cont = card.querySelector('.kegiatan-container');
+            const btn = card.querySelector('.opd-toggle-btn');
+
+            card.classList.remove('expanded');
+            if (cont) cont.classList.remove('show');
+            if (btn) btn.textContent = 'expand_more';
+        });
+
+        // Tutup semua detail kegiatan (baik di OPD maupun di filter)
+        document.querySelectorAll('.kegiatan-card, .filtered-kegiatan-card').forEach(card => {
+            const det = card.querySelector('.kegiatan-detail');
+            const activityToggle = card.querySelector('.toggle-btn');
+            
+            card.classList.remove('expanded');
+            if (det) det.style.display = 'none';
+            if (activityToggle) activityToggle.textContent = 'expand_more';
+        });
+    }
     
-    // --- FUNGSI CARD (Dipertahankan) ---
+    // --- FUNGSI CARD (Sisanya) ---
     
-    // Fungsi untuk membuat HTML Card Kegiatan (digunakan di kartu OPD)
     function createKegiatanCard(kegiatan, index) {
         const realisasiKeuangan = parseFloat(kegiatan.realisasi_keuangan.replace(',', '.'));
         const realisasiFisik = parseFloat(kegiatan.realisasi_fisik.replace(',', '.'));
@@ -831,12 +867,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return card;
     }
 
-    // FUNGSI TOGGLE DETAIL (DIGUNAKAN UNTUK KARTU OPD DAN KARTU FILTER)
     function toggleKegiatanDetail(kegiatanCard) {
         const detail = kegiatanCard.querySelector('.kegiatan-detail');
         const toggleBtn = kegiatanCard.querySelector('.toggle-btn');
         
-        // Menutup semua detail kegiatan lain dalam container yang sama (baik di OPD maupun di Filter)
         kegiatanCard.parentElement.querySelectorAll('.kegiatan-card, .filtered-kegiatan-card').forEach(card => {
             const det = card.querySelector('.kegiatan-detail');
             const otherToggle = card.querySelector('.toggle-btn');
@@ -848,7 +882,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Menampilkan/menyembunyikan detail kegiatan yang diklik
         kegiatanCard.classList.toggle('expanded'); 
         if (kegiatanCard.classList.contains('expanded')) {
             detail.style.display = 'block';
@@ -858,50 +891,50 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleBtn.textContent = 'expand_more';
         }
     }
-    
-    // FUNGSI TOGGLE CONTAINER (KHUSUS UNTUK KARTU OPD)
+
     function toggleKegiatanContainer(opdCard) {
         const container = opdCard.querySelector('.kegiatan-container');
         const opdToggleBtn = opdCard.querySelector('.opd-toggle-btn');
         
-        // Tutup container OPD lain
         document.querySelectorAll('.card').forEach(card => {
             const cont = card.querySelector('.kegiatan-container');
             const btn = card.querySelector('.opd-toggle-btn');
             if (card !== opdCard && card.classList.contains('expanded')) {
+                card.querySelectorAll('.kegiatan-card').forEach(kegCard => {
+                    kegCard.classList.remove('expanded');
+                    kegCard.querySelector('.kegiatan-detail').style.display = 'none';
+                    kegCard.querySelector('.toggle-btn').textContent = 'expand_more';
+                });
+
                 cont.classList.remove('show');
                 card.classList.remove('expanded');
                 if(btn) btn.textContent = 'expand_more';
             }
         });
         
-        // Reset semua detail kegiatan dan ikonnya
-        document.querySelectorAll('.kegiatan-card').forEach(card => {
-            const det = card.querySelector('.kegiatan-detail');
-            const activityToggle = card.querySelector('.toggle-btn');
-            card.classList.remove('expanded');
-            if (det) det.style.display = 'none';
-            if (activityToggle) activityToggle.textContent = 'expand_more';
-        });
-        
-        // Tampilkan/sembunyikan container yang diklik
         container.classList.toggle('show');
         opdCard.classList.toggle('expanded'); 
         
-        // Ganti icon OPD yang diklik
         if (opdCard.classList.contains('expanded')) {
             opdToggleBtn.textContent = 'expand_less';
         } else {
             opdToggleBtn.textContent = 'expand_more';
         }
+
+        if (!opdCard.classList.contains('expanded')) {
+             opdCard.querySelectorAll('.kegiatan-card').forEach(kegCard => {
+                kegCard.classList.remove('expanded');
+                kegCard.querySelector('.kegiatan-detail').style.display = 'none';
+                kegCard.querySelector('.toggle-btn').textContent = 'expand_more';
+            });
+        }
     }
 
-    // --- 4. FITUR SUARA (Dipertahankan) ---
+    // --- 3. FITUR SUARA (Dipertahankan) ---
     
-    /* === Fitur Suara Tap — tidak double & tidak aktif saat scroll === */
-    const tapSound = new Audio("tap_sound.mp3"); // ganti dengan file suara kamu
+    const tapSound = new Audio("tap_sound.mp3"); 
     tapSound.preload = "auto";
-    tapSound.volume = 0.3; // opsional: biar suaranya lembut
+    tapSound.volume = 0.3; 
 
     let touchStartX = 0;
     let touchStartY = 0;
@@ -919,7 +952,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const t = e.touches[0];
         const dx = Math.abs(t.clientX - touchStartX);
         const dy = Math.abs(t.clientY - touchStartY);
-        if (dx > 10 || dy > 10) touchMoved = true; // dianggap scroll
+        if (dx > 10 || dy > 10) touchMoved = true; 
     });
 
     document.addEventListener("touchend", (e) => {
@@ -927,13 +960,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener("click", (e) => {
-        // untuk pengguna desktop
         if (e.pointerType !== "touch") playTapSound();
     });
 
     function playTapSound() {
         const now = Date.now();
-        if (now - lastPlayTime < 200) return; // cegah suara double
+        if (now - lastPlayTime < 200) return; 
         lastPlayTime = now;
         tapSound.currentTime = 0;
         tapSound.play().catch(() => {});
@@ -942,13 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
     
     <footer id="footer">
-     Strong Point 2025. &copy; All rights reserved @zuwlend<p>(Best view via Smartphone/Tablet).</p>
+     Strong Point 2025. &COPY; All rights reserved by @zuwlend<p>(Best view via Smartphone/Tablet).</p>
     </footer>
 </body>
 </html>
-
-
-
-
-
-
